@@ -17,11 +17,12 @@ use embedded_graphics::Drawable;
 use embedded_graphics::mono_font::ascii::FONT_6X10;
 use embedded_graphics::mono_font::MonoTextStyleBuilder;
 use embedded_graphics::pixelcolor::BinaryColor;
-use embedded_graphics::prelude::Point;
-use embedded_graphics::text::{Alignment, Text};
+use embedded_graphics::prelude::*;
+use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
+use embedded_graphics::text::{Alignment, Text, TextStyle};
 use embedded_hal_bus::i2c::CriticalSectionDevice;
 use esp_hal::clock::CpuClock;
-use esp_hal::i2c::master::{Config, I2c};
+use esp_hal::i2c::master::{BusTimeout, Config, FsmTimeout, I2c};
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use mini_oled::prelude::{DisplayRotation, I2cInterface, Sh1106};
@@ -51,7 +52,8 @@ async fn main(spawner: Spawner) -> ! {
 
     let i2c_bus = I2c::new(
         peripherals.I2C0,
-        Config::default().with_frequency(Rate::from_khz(400))
+        Config::default()
+            .with_frequency(Rate::from_khz(400))
     )
         .unwrap()
         .with_sda(peripherals.GPIO6)
@@ -70,20 +72,33 @@ async fn main(spawner: Spawner) -> ! {
         panic!("Couldn't init bme280!")
     });
 
-    // let display_i2c = CriticalSectionDevice::new(&i2c_mutex);
-    //
-    // let i2c_interface = I2cInterface::new(display_i2c, 0x3C);
-    //
-    // let mut screen = Sh1106::new(i2c_interface);
-    // screen.init().unwrap();
-    //
-    // screen.set_rotation(DisplayRotation::Rotate180).unwrap();
-    //
-    // let text_style = MonoTextStyleBuilder::new()
-    //     .font(&FONT_6X10)
-    //     .text_color(BinaryColor::On)
-    //     .background_color(BinaryColor::Off)
-    //     .build();
+    let display_i2c = CriticalSectionDevice::new(&i2c_mutex);
+
+    let i2c_interface = I2cInterface::new(display_i2c, 0x3C);
+
+    info!("i2c interface initialized!");
+    let mut screen = Sh1106::new(i2c_interface);
+    println!("new screen");
+    screen.init().unwrap_or_else(|err| {
+        println!("err");
+        info!("init failed: {}", defmt::Debug2Format(&err));
+        panic!("Couldn't init screen");
+    });
+    println!("screen unwrapped");
+
+    info!("screen initialized!");
+
+    let fill = PrimitiveStyle::with_fill(BinaryColor::Off);
+    Rectangle::new(Point::new(0, 0), Size::new(128, 64))
+        .into_styled(fill)
+        .draw(screen.get_mut_canvas())
+        .unwrap();
+
+    let text_style = MonoTextStyleBuilder::new()
+        .font(&FONT_6X10)
+        .text_color(BinaryColor::On)
+        .background_color(BinaryColor::Off)
+        .build();
 
     info!("Started");
 
@@ -93,29 +108,37 @@ async fn main(spawner: Spawner) -> ! {
                 println!("Temp: {}", measurement.temperature);
                 println!("Humidity: {}", measurement.humidity);
                 println!("Pressure: {}", measurement.pressure);
-                // Text::with_alignment(
-                //     "Got measurement",
-                //     Point::new(20,20),
-                //     text_style,
-                //     Alignment::Center,
-                // )
-                //     .draw(screen.get_mut_canvas())
-                //     .unwrap();
+                Text::with_text_style(
+                    "Got measurement",
+                    Point::new(0,6),
+                    text_style,
+                    TextStyle::default(),
+                )
+                    .draw(screen.get_mut_canvas())
+                    .unwrap();
             }
             Err(e) => {
                 println!("Error");
-                // Text::with_alignment(
-                //     "Failed",
-                //     Point::new(20,30),
-                //     text_style,
-                //     Alignment::Center
-                // )
-                //     .draw(screen.get_mut_canvas())
-                //     .unwrap();
+                Text::with_text_style(
+                    "Failed",
+                    Point::new(0,6),
+                    text_style,
+                    TextStyle::default(),
+                )
+                    .draw(screen.get_mut_canvas())
+                    .unwrap();
             }
         }
 
-        // screen.flush().unwrap();
+        // Text::with_text_style("Foobar", Point::new(0, 6), text_style, TextStyle::default())
+        //     .draw(screen.get_mut_canvas())
+        //     .unwrap();
+        // Text::with_alignment("Foobar", Point::new(0, 6), text_style, Alignment::Left)
+        //     .draw(screen.get_mut_canvas())
+        //     .unwrap();
+
+        println!("Flushing screen");
+        screen.flush().unwrap();
         Timer::after(Duration::from_secs(1)).await;
     }
 }
