@@ -10,7 +10,7 @@
 use core::cell::RefCell;
 use bme280::i2c::BME280;
 use critical_section::Mutex;
-use defmt::{error, info, println};
+use defmt::{info, println};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use embedded_graphics::Drawable;
@@ -19,13 +19,13 @@ use embedded_graphics::mono_font::MonoTextStyleBuilder;
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
-use embedded_graphics::text::{Alignment, Text, TextStyle};
+use embedded_graphics::text::{Text, TextStyle};
 use embedded_hal_bus::i2c::CriticalSectionDevice;
 use esp_hal::clock::CpuClock;
-use esp_hal::i2c::master::{BusTimeout, Config, FsmTimeout, I2c};
+use esp_hal::i2c::master::{Config, I2c};
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
-use mini_oled::prelude::{DisplayRotation, I2cInterface, Sh1106};
+use mini_oled::prelude::{I2cInterface, Sh1106};
 use {esp_backtrace as _, esp_println as _};
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -37,7 +37,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
 #[esp_rtos::main]
-async fn main(spawner: Spawner) -> ! {
+async fn main(_spawner: Spawner) -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
@@ -117,7 +117,7 @@ async fn main(spawner: Spawner) -> ! {
                     .draw(screen.get_mut_canvas())
                     .unwrap();
             }
-            Err(e) => {
+            Err(_e) => {
                 println!("Error");
                 Text::with_text_style(
                     "Failed",
