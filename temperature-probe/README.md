@@ -12,8 +12,8 @@ cargo run --release
 
 **IMPORTANT**
 Access to USB serial port requires for user to be in appropriate group:
-- uucp on Arch
-- dialout on other distros
+- `uucp` on Arch
+- `dialout` on other distros
 
 You can add yourself to the group using
 
