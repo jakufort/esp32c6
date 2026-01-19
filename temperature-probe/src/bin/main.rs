@@ -56,16 +56,16 @@ fn main() -> ! {
     loop {
         match bme280.measure(&mut delay) {
             Ok(measurement) => {
-                let mut temp: heapless::String<16> = heapless::String::new();
-                write!(temp, "TEMP:     {:04.2}", measurement.temperature).unwrap();
+                let mut temp: heapless::String<18> = heapless::String::new();
+                write!(temp, "TEMP:     {:04.2} C", measurement.temperature).unwrap();
                 write_to_screen(0, 10, &mut screen, &temp);
 
-                let mut humidity: heapless::String<16> = heapless::String::new();
-                write!(humidity, "HUMIDITY: {:04.2}", measurement.humidity).unwrap();
+                let mut humidity: heapless::String<19> = heapless::String::new();
+                write!(humidity, "HUMIDITY: {:04.2} %", measurement.humidity).unwrap();
                 write_to_screen(0, 20, &mut screen, &humidity);
 
-                let mut pressure: heapless::String<18> = heapless::String::new();
-                write!(pressure, "PRESSURE: {:06.2}", measurement.pressure).unwrap();
+                let mut pressure: heapless::String<21> = heapless::String::new();
+                write!(pressure, "PRESSURE: {:04.2} hPa", (measurement.pressure/100.0)).unwrap();
                 write_to_screen(0, 30, &mut screen, &pressure);
             }
             Err(_e) => {
